@@ -12,12 +12,6 @@ from .models import User
 #         self.message = message
 
 
-class SendMessageSerializer(serializers.Serializer):
-    users = serializers.ListField(
-        child=serializers.IntegerField(),
-        required=True
-    )
-    message = serializers.CharField(required=True)
 
 
 class UserSerializer(serializers.ModelSerializer):

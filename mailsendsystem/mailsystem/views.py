@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from sqlalchemy import delete
 
 from .models import User
-from .serializers import UserSerializer, SendMessageSerializer
+from .serializers import UserSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -27,35 +27,35 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def send_message(self, request):
-        serializer = SendMessageSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors)
+        user_ids = request.data.get("users")
+        message = request.data.get("message")
 
-        user_ids = serializer.validated_data['users']
-        message = serializer.validated_data['message']
+        if not user_ids or not message:
+            return Response(
+                {"error": "Users and message are required fields"},
+            )
 
         users = User.objects.filter(id__in=user_ids)
-        emails = [user.email for user in users if user.email]
 
-        if not emails:
+        if not users.exists():
             return Response(
-                {"error": "No valid email addresses found for the given users."}
+                {"error": "No users found for provided IDs"},
             )
 
-        try:
+        for user in users:
             send_mail(
-                subject="Notification from Our System",
+                subject="Notification",
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=emails,
-                fail_silently=False,
+                recipient_list=[user.email],
+                fail_silently=False
             )
-        except Exception as e:
-            return Response(
-                {"error": f"Failed to send emails: {str(e)}"}
-            )
+            user.message = message
+            user.save()
 
-        return Response({"success": f"Message sent to {len(emails)} users."})
+        return Response(
+            {"success": f"Emails sent to {len(users)} users and messages updated."},
+        )
 # class UserAPIList(generics.ListAPIView):
 #     queryset = User.objects.all()
 #     serializer_class = UserSerializer
