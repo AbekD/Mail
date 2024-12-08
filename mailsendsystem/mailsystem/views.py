@@ -4,7 +4,7 @@ from rest_framework import generics, viewsets
 from django.shortcuts import render
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
 from rest_framework.views import APIView
 from sqlalchemy import delete
@@ -31,30 +31,27 @@ class UserViewSet(viewsets.ModelViewSet):
         message = request.data.get("message")
 
         if not user_ids or not message:
-            return Response(
-                {"error": "Users and message are required fields"},
-            )
+            return Response({"error": "Users and message are required"},)
 
         users = User.objects.filter(id__in=user_ids)
 
         if not users.exists():
-            return Response(
-                {"error": "No users found for provided IDs"},
-            )
+            return Response({"error": "No users found for provided ID"},)
 
         for user in users:
-            send_mail(
+            email = EmailMessage(
                 subject="Notification",
-                message=message,
+                body=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False
+                to=[user.email]
             )
+            email.content_subtype = "html"
+            email.send(fail_silently=False)
             user.message = message
             user.save()
 
         return Response(
-            {"success": f"Emails sent to {len(users)} users and messages updated."},
+            {"success": f"Emails sent to {len(users)} users."},
         )
 # class UserAPIList(generics.ListAPIView):
 #     queryset = User.objects.all()
