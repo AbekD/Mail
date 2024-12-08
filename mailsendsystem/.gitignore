@@ -1,0 +1,12 @@
+
+venv/
+env/
+
+db.sqlite3
+/static/
+media/
+
+
+
+.idea/
+.vscode/
